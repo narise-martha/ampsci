@@ -269,4 +269,11 @@ int main(int argc, char *argv[]) {
 
   // Run program. Add option to run multiple times
   ampsci(input);
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // Calculating the dark photon multipole
+
+  
+
+
 }
