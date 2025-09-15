@@ -268,12 +268,8 @@ int main(int argc, char *argv[]) {
                                       IO::InputBlock("ampsci", default_input);
 
   // Run program. Add option to run multiple times
-  ampsci(input);
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-  // Calculating the dark photon multipole
-
-  
-
+  ampsci(input);  
 
 }
+
+

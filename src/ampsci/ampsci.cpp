@@ -7,6 +7,7 @@
 #include "Maths/Interpolator.hpp" //for 'ExtraPotential'
 #include "Modules/modules_list.hpp"
 #include "Modules/runModules.hpp"
+#include "Kionisation/DP_Multipole.hpp"
 #include "Physics/include.hpp"
 #include "Wavefunction/Wavefunction.hpp"
 
@@ -514,5 +515,110 @@ Wavefunction ampsci(const IO::InputBlock &input) {
   // run each of the modules with the calculated wavefunctions
   Module::runModules(input, wf);
 
-  return wf;
-}
+
+//==============================================================================
+  
+  // Want to calculate the rate of absorption for a dark photon
+  // which requires us to calculate the matrix element
+  // < b | alpha . e^{iqr} | a >
+  // Which is also useful in calculating general cross sections
+  
+  // The rate of absorption for a dark photon with mass, m_z
+  // R = (2pi/hbar) |Tab|^2 δ(Eb - Ea)
+
+  // Requires the calculation of the probability amplitude, |Tab|^2,
+  // |Tab|^2 = 4pi \Sum_{J, sigma} \Sum_{a,b} |< jb || alpha . a^(sigma)_J || ja >|^2
+  // sigma = -1, 0, 1, and J = 0 -> infinity (in theory)
+
+  // Note that we have already summed over the three polarisation directions of the dark
+  // photon and averaged over momentum directions. 
+
+  // I want this code to output this as a function of dark photon mass:
+  // \Sum_{J, sigma} \Sum_{a,b} |< jb || alpha . a^(sigma)_J || ja >|^2
+
+  // Maybe with velocity averaging as well
+
+  //==============================================================================
+
+  // Parameters
+
+  //==============================================================================
+
+  // Set up min and max masses (This should become inputs later on)
+
+  double min_mass_MeV = 1e-3; // 1 keV
+  double max_mass_MeV = 0.01;  // 0.1 MeV
+  int no_masses = 4;        // Number of masses
+
+  // For plotting, usually we want to plot logarithmically.
+  // So generate a vector of masses with logarithmic intervals
+  // Logarithmic range for masses for logarithmic plotting
+  const auto ms_in_MeV = qip::logarithmic_range(min_mass_MeV, max_mass_MeV, no_masses);
+
+  // For later: Add dark matter velocity distribution for averaging over velocities
+  double v = 10e-3; // c, Average velocity
+
+  // Output file for masses and rates/reduced matrix elements
+  // Should ask eventually how to do this better
+  std::ofstream output("dark-photon.txt");
+
+  //==============================================================================
+
+  // Summing over masses
+  for (auto mass_in_MeV : ms_in_MeV) {
+
+    // For each mass, we need to calculate the energy, E=mc^2, of the incoming
+    // dark photon, in order to calculate what final continuum states are possible.
+    // I.e. Does the dark photon have enough energy to ionise certain states?
+    double E = mass_in_MeV * 1e6 / PhysConst::Hartree_eV; // Energy in Hartree
+
+    const auto &grid = wf.grid();       // Wavefunction grid
+    using namespace qip::overloads;
+
+    // Need to average over the velocity distribution of dark matter
+    // (or, just set v = 10^-3 c)
+
+    // Momentum in atomic units (Needed for Bessel functions and velocity averaging)
+    double q = E * v / PhysConst::c;
+
+    // Initialising the sum of the square of the reduced matrix elements
+    double tot_RME_sq = 0.0;
+		double tot_RME_sq_J = 0.0;
+
+    // Summing over J/L to generate spherical bessel functions for
+    // L = J - 1, L = J, L = J + 1
+    int Jmax = 5;
+    std::vector<std::vector<double>> jL(Jmax+3);
+
+    for (int L = -1; L < (Jmax+2); L++) {
+			if (L == -1){
+				// j_{-1} = (-1)^{-1} j_1
+				jL[0] = -1*SphericalBessel::fillBesselVec(1, grid.r() * q);
+			}
+
+			else{
+      jL[L+1] = SphericalBessel::fillBesselVec(L, grid.r() * q);
+			}
+
+    } // End L loop
+
+    // Now we have all of our Bessel functions generated yay
+
+    // Sum over J values
+    for (int J = 0; J < (Jmax + 1); J++){
+        
+      // Sum over initial state Fa in the core
+        for (auto &Fa : wf.core()) {
+          tot_RME_sq += abs_RME_total(false, wf.vHF(), Fa, E, 2*J, jL.at(J+1), jL.at(J+2), jL.at(J));
+					tot_RME_sq_J += abs_RME_total(true, wf.vHF(), Fa, E, 2*J, jL.at(J+1), jL.at(J+2), jL.at(J));
+        } // End Fa loop
+
+    } // End J loop
+
+		std::cout<<__LINE__<<" End m = "<< mass_in_MeV <<std::endl;
+    output << mass_in_MeV << " " << tot_RME_sq << " " << tot_RME_sq_J << "\n";
+
+  } // End mass loop
+
+	return wf;
+	}
