@@ -546,9 +546,9 @@ Wavefunction ampsci(const IO::InputBlock &input) {
 
   // Set up min and max masses (This should become inputs later on)
 
-  double min_mass_MeV = 1e-3; // 1 keV
-  double max_mass_MeV = 0.01;  // 0.1 MeV
-  int no_masses = 4;        // Number of masses
+  double min_mass_MeV = 1e-5; // 10 eV
+  double max_mass_MeV = 0.001;  // 1 keV
+  int no_masses = 5;        // Number of masses
 
   // For plotting, usually we want to plot logarithmically.
   // So generate a vector of masses with logarithmic intervals
@@ -582,8 +582,10 @@ Wavefunction ampsci(const IO::InputBlock &input) {
     double q = E * v / PhysConst::c;
 
     // Initialising the sum of the square of the reduced matrix elements
-    double tot_RME_sq = 0.0;
-		double tot_RME_sq_J = 0.0;
+    double tot_RME_sq = 0.0;    // RME using my calculations
+		double tot_RME_sq_J = 0.0;  // RME using Johnsons calculations
+    double tot_RME_EDA = 0.0;   // Electric-dipole approximation using my calculations
+    double tot_RME_EDA_J = 0.0; // Electric-dipole approximation using Johnsons calculations
 
     // Summing over J/L to generate spherical bessel functions for
     // L = J - 1, L = J, L = J + 1
@@ -604,19 +606,28 @@ Wavefunction ampsci(const IO::InputBlock &input) {
 
     // Now we have all of our Bessel functions generated yay
 
-    // Sum over J values
-    for (int J = 0; J < (Jmax + 1); J++){
-        
-      // Sum over initial state Fa in the core
-        for (auto &Fa : wf.core()) {
+    // Sum over initial state Fa in the core
+    #pragma omp parallel for reduction(+ : tot_RME_sq, tot_RME_sq_J, tot_RME_EDA, tot_RME_EDA_J)
+    for (auto &Fa : wf.core()) {
+
+      // Sum over J values
+      for (int J = 0; J < (Jmax + 1); J++){        
+                                                                  // j_J,      j_(J+1),     j_(J-1)
           tot_RME_sq += abs_RME_total(false, wf.vHF(), Fa, E, 2*J, jL.at(J+1), jL.at(J+2), jL.at(J));
 					tot_RME_sq_J += abs_RME_total(true, wf.vHF(), Fa, E, 2*J, jL.at(J+1), jL.at(J+2), jL.at(J));
-        } // End Fa loop
+        
+        } // End J loop
 
-    } // End J loop
+        // Electric dipole approximation
+        // Set J = 1, Bessel function j_1 approx kr/3
+        // Also for electric dipole approximation, only sum over sigma = 0,1
+        tot_RME_EDA += abs_RME_total_EDA(false, wf.vHF(), Fa, E, 2*1, (1.0/3.0)*grid.r()*q, jL.at(1+2), jL.at(1));
+        tot_RME_EDA_J += abs_RME_total_EDA(true, wf.vHF(), Fa, E, 2*1, (1.0/3.0)*grid.r()*q, jL.at(1+2), jL.at(1));
+
+    } // End Fa loop
 
 		std::cout<<__LINE__<<" End m = "<< mass_in_MeV <<std::endl;
-    output << mass_in_MeV << " " << tot_RME_sq << " " << tot_RME_sq_J << "\n";
+    output << mass_in_MeV << " " << tot_RME_sq << " " << tot_RME_sq_J << " " << tot_RME_EDA_J << " " << tot_RME_EDA << "\n";
 
   } // End mass loop
 

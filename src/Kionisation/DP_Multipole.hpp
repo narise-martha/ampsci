@@ -137,7 +137,7 @@ std::complex<double> ME_Y_JLM(const DiracSpinor &Fa, const DiracSpinor &Fb, cons
 
 // We can calculate <ka||C^k||kb> using Angular::Ck_kk(int k, int ka, int kb)
 // Rescaling from C^sigma -> Y^sigma
-double ME_sigma_Y(int kappa_b, int kappa_a, const int sigma, const int twoJ){
+double RME_sigma_Y(int kappa_b, int kappa_a, const int sigma, const int twoJ){
   
   int J = int(0.5*( twoJ + 0.001));
 
@@ -164,14 +164,14 @@ double ME_sigma_Y(int kappa_b, int kappa_a, const int sigma, const int twoJ){
   }
 }
 
-std::complex<double> ME_alpha_jL_Y(const DiracSpinor &Fa, const DiracSpinor &Fb, const int sigma, const int twoJ, const int twomb, const int twoma, const std::vector<double> jL){
+std::complex<double> RME_alpha_jL_Y(const DiracSpinor &Fa, const DiracSpinor &Fb, const int sigma, const int twoJ, const std::vector<double> jL){
 
   const auto &grid = Fa.grid();
   using namespace qip::overloads;
 
   std::complex<double> i(0.0,1.0); 
 
-  return i*radial_int(Fb.f(), Fa.g(), jL, grid)*ME_sigma_Y(Fb.kappa(), -Fa.kappa(),sigma,twoJ) - i*radial_int(Fb.g(), Fa.f(), jL, grid)*ME_sigma_Y(-Fb.kappa(), Fa.kappa(),sigma,twoJ);
+  return i*radial_int(Fb.f(), Fa.g(), jL, grid)*RME_sigma_Y(Fb.kappa(), -Fa.kappa(),sigma,twoJ) - i*radial_int(Fb.g(), Fa.f(), jL, grid)*RME_sigma_Y(-Fb.kappa(), Fa.kappa(),sigma,twoJ);
 }
 
 
@@ -219,30 +219,37 @@ double abs_RME_alpha_a(bool Johnson, const DiracSpinor &Fa, const DiracSpinor &F
     return 0; 
   }
 
-    return pow(abs(Angular::neg1pow_2(Fa.twoj() - Fb.twoj())* (1/Angular::threej_2(Fb.twoj(),twoJ,Fa.twoj(),-1,0,1)) * full_ME),2);
+    return pow(abs(Angular::neg1pow_2(Fb.twoj() - 1)* (1/Angular::threej_2(Fb.twoj(),twoJ,Fa.twoj(),-1,0,1)) * full_ME),2);
   }
 
   // USING JOHNSON matrix elements
-  else if (Johnson == true){
+  // Instead of calculating the full matrix element, we already
+  // know the reduced matrix elements (since they can be composed of
+  //  < b || C_J || a >, which are just rescaled spherical harmonics)
+
+  if (Johnson == true){
+
+    std::complex<double> full_RME;
+
     if (sigma == -1){
-      full_ME = double((twoJ/(2*twoJ+2)))*ME_alpha_jL_Y(Fa,Fb,-1,twoJ,1,1,jJminus1) 
-      + double(sqrt(twoJ/(2*twoJ+2))*sqrt((twoJ+1)/(2*twoJ+2)))*ME_alpha_jL_Y(Fa,Fb,1,twoJ,1,1,jJminus1) 
-      + double(((twoJ+2)/(2*twoJ + 2)))*ME_alpha_jL_Y(Fa,Fb,-1,twoJ,1,1,jJplus1) 
-      - double(sqrt(twoJ/(2*twoJ+2))*sqrt((twoJ+1)/(2*twoJ+2)))*ME_alpha_jL_Y(Fa,Fb,1,twoJ,1,1,jJplus1);
+      full_RME = double((twoJ/(2*twoJ+2)))*RME_alpha_jL_Y(Fa,Fb,-1,twoJ,jJminus1) 
+      + double(sqrt(twoJ/(2*twoJ+2))*sqrt((twoJ+1)/(2*twoJ+2)))*RME_alpha_jL_Y(Fa,Fb,1,twoJ,jJminus1) 
+      + double(((twoJ+2)/(2*twoJ+2)))*RME_alpha_jL_Y(Fa,Fb,-1,twoJ,jJplus1) 
+      - double(sqrt(twoJ/(2*twoJ+2))*sqrt((twoJ+1)/(2*twoJ+2)))*RME_alpha_jL_Y(Fa,Fb,1,twoJ,jJplus1);
     }
 
     else if (sigma == 0){
-      full_ME = ME_alpha_jL_Y(Fa,Fb,0,twoJ,1,1,jJ);
+      full_RME = RME_alpha_jL_Y(Fa,Fb,0,twoJ,jJ);
     }
 
     else if (sigma == -1){
-      full_ME = double(sqrt(twoJ/(2*twoJ+2))*sqrt((twoJ+1)/(2*twoJ+2)))*ME_alpha_jL_Y(Fa,Fb,-1,twoJ,1,1,jJminus1) 
-      + double((twoJ+2)/(2*twoJ + 2))*ME_alpha_jL_Y(Fa,Fb,1,twoJ,1,1,jJminus1) 
-      - double(sqrt(twoJ/(2*twoJ+2))*sqrt((twoJ+1)/(2*twoJ+2)))*ME_alpha_jL_Y(Fa,Fb,-1,twoJ,1,1,jJplus1) 
-      + double(twoJ/(2*twoJ+2))*ME_alpha_jL_Y(Fa,Fb,1,twoJ,1,1,jJplus1);
+      full_RME = double(sqrt(twoJ/(2*twoJ+2))*sqrt((twoJ+1)/(2*twoJ+2)))*RME_alpha_jL_Y(Fa,Fb,-1,twoJ,jJminus1) 
+      + double((twoJ+2)/(2*twoJ + 2))*RME_alpha_jL_Y(Fa,Fb,1,twoJ,jJminus1) 
+      - double(sqrt(twoJ/(2*twoJ+2))*sqrt((twoJ+1)/(2*twoJ+2)))*RME_alpha_jL_Y(Fa,Fb,-1,twoJ,jJplus1) 
+      + double(twoJ/(2*twoJ+2))*RME_alpha_jL_Y(Fa,Fb,1,twoJ,jJplus1);
     }
 
-    return pow(abs(full_ME),2);
+    return pow(abs(full_RME),2);
   } 
 
   }
@@ -278,6 +285,38 @@ double abs_RME_total(bool Johnson, const HF::HartreeFock *vHF, const DiracSpinor
   double RME_tot = 0.0;
   for (const auto &Fb : cntm.orbitals) {
     for (int sigma = -1; sigma < 2; sigma++){
+    RME_tot += abs_RME_alpha_a(Johnson,Fa, Fb, jJ, jJplus1, jJminus1, sigma, twoJ); 
+    }
+  }
+  return RME_tot;
+}
+
+// Same as the function above, but we only want to sum over sigma = 0,1
+// Could make this more compact by adding another Boolian in the above function
+// For EDA true/false to change the sum over sigma
+double abs_RME_total_EDA(bool Johnson, const HF::HartreeFock *vHF, const DiracSpinor &Fa, const double E, const int twoJ, const std::vector<double> jJ, const std::vector<double> jJplus1, const std::vector<double> jJminus1) {
+
+  ContinuumOrbitals cntm(vHF);
+
+  // Calculating final energy state.
+  // E_f = mc^2 - |E_i| = mc^2 + E_i
+  // since E_i < 0
+  const auto ec = E + Fa.en();
+
+  // If final energy is negative, ignore this state
+  // Only want ionised final states.
+  if (ec < 0.0) {
+    return 0.0;
+  }
+
+  // Solving for continuum states
+  cntm.solveContinuumHF(ec, 0, 4, &Fa);
+
+  // Calculating the RME of a single state, and then
+  // summing over the final states states, and sigma
+  double RME_tot = 0.0;
+  for (const auto &Fb : cntm.orbitals) {
+    for (int sigma = 0; sigma < 2; sigma++){
     RME_tot += abs_RME_alpha_a(Johnson,Fa, Fb, jJ, jJplus1, jJminus1, sigma, twoJ); 
     }
   }
