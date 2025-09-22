@@ -548,7 +548,7 @@ Wavefunction ampsci(const IO::InputBlock &input) {
 
   double min_mass_MeV = 1e-5; // 10 eV
   double max_mass_MeV = 0.001;  // 1 keV
-  int no_masses = 5;        // Number of masses
+  int no_masses = 20;        // Number of masses
 
   // For plotting, usually we want to plot logarithmically.
   // So generate a vector of masses with logarithmic intervals
@@ -563,6 +563,16 @@ Wavefunction ampsci(const IO::InputBlock &input) {
   std::ofstream output("dark-photon.txt");
 
   //==============================================================================
+
+  //std::vector<int> Jmax_vec = {0,1,2,3,4,5};
+
+  // Testing if J affects the rates that much
+
+  //for (int Jmax = 0; Jmax < 2; Jmax++){
+
+  //std::string fileName = "dark-photon-J-" + std::to_string(Jmax) + ".txt";
+
+  //std::ofstream output(fileName);
 
   // Summing over masses
   for (auto mass_in_MeV : ms_in_MeV) {
@@ -589,13 +599,14 @@ Wavefunction ampsci(const IO::InputBlock &input) {
 
     // Summing over J/L to generate spherical bessel functions for
     // L = J - 1, L = J, L = J + 1
-    int Jmax = 5;
-    std::vector<std::vector<double>> jL(Jmax+3);
+    int Jmax = 4;
+    
+    std::vector<std::vector<double>> jL(Jmax+3+1);
 
-    for (int L = -1; L < (Jmax+2); L++) {
+    for (int L = -1; L < (Jmax+2)+1; L++) {
 			if (L == -1){
 				// j_{-1} = (-1)^{-1} j_1
-				jL[0] = -1*SphericalBessel::fillBesselVec(1, grid.r() * q);
+				jL[0] = -0.0*SphericalBessel::fillBesselVec(1, grid.r() * q);
 			}
 
 			else{
@@ -626,9 +637,9 @@ Wavefunction ampsci(const IO::InputBlock &input) {
 
     } // End Fa loop
 
-		std::cout<<__LINE__<<" End m = "<< mass_in_MeV <<std::endl;
+		std::cout <<" End m = "<< mass_in_MeV <<std::endl;
     output << mass_in_MeV << " " << tot_RME_sq << " " << tot_RME_sq_J << " " << tot_RME_EDA_J << " " << tot_RME_EDA << "\n";
-
+    //}// End Jmax loop
   } // End mass loop
 
 	return wf;

@@ -43,9 +43,15 @@ double cg(const int twola, const int twolb, const int twoL, const int twoma, con
 // < lb, mb | Y_{L,M} | la, ma >
 double ME_spherical_harm(const int twoL, const int twoM, const int lb, const int la, const int twomb, const int twoma) {
     
+    // int J = int(0.5*( twoJ + 0.001));
+
     // Reduced Matrix element
     // < lb || C^L_M || la >
     double reduced_ME = pow(-1,lb)*sqrt((2*lb+1)*(2*la+1))*Angular::threej_2(2*lb,twoL,2*la,0,0,0);
+    
+    // (sqrt((twoJ+1)/(4*M_PI)))*Angular::Ck_kk(J,-kappa_b,kappa_a); 
+    
+    //pow(-1,lb)*sqrt((2*lb+1)*(2*la+1))*Angular::threej_2(2*lb,twoL,2*la,0,0,0);
 
     // Y_{L,M} = sqrt((2L+1)/4pi) C^L_M
     // pow(-1,0.5*(2*lb-(twomb+0.001)))*
@@ -96,7 +102,7 @@ double ang_int_sig_z(const int twoL, const int twoJ, const int twoM, const int l
 // < b | alpha . jL \vec{Y}_{J,L,M} | a >
 // for a given ma and mb (this will be used to calculate the reduced matrix element)
 
-std::complex<double> ME_Y_JLM(const DiracSpinor &Fa, const DiracSpinor &Fb, const std::vector<double> jL, const int twoL, const int twoJ, const int twoM, const int twomb, const int twoma){
+std::complex<double> ME_jL_Y_JLM(const DiracSpinor &Fa, const DiracSpinor &Fb, const std::vector<double> jL, const int twoL, const int twoJ, const int twoM, const int twomb, const int twoma){
 
   // Defining the quantum numbers to feed into the angular integrals
   auto la = Fa.l(); // int
@@ -115,17 +121,17 @@ std::complex<double> ME_Y_JLM(const DiracSpinor &Fa, const DiracSpinor &Fb, cons
 
   std::complex<double> i(0.0,1.0); 
 
-  std::complex<double> term1 = (1/sqrt(2))*i*radial_int_fbga*ang_int_sig_x(twoL,twoJ,twoM,-1,lb,twojb,twomb,l_til_a,twoja,twoma);
-  std::complex<double> term2 = (1/sqrt(2))*radial_int_fbga*ang_int_sig_y(twoL,twoJ,twoM,-1,lb,twojb,twomb,l_til_a,twoja,twoma);
-  std::complex<double> term3 = radial_int_fbga*ang_int_sig_z(twoL,twoJ,twoM,0,lb,twojb,twomb,l_til_a,twoja,twoma);
-  std::complex<double> term4 = -(1/sqrt(2))*i*radial_int_fbga*ang_int_sig_z(twoL,twoJ,twoM,1,lb,twojb,twomb,l_til_a,twoja,twoma);
-  std::complex<double> term5 = (1/sqrt(2))*radial_int_fbga*ang_int_sig_y(twoL,twoJ,twoM,1,lb,twojb,twomb,l_til_a,twoja,twoma);
+  std::complex<double> term1 = (1/sqrt(2))*i* radial_int_fbga*ang_int_sig_x(twoL,twoJ,twoM,-1,lb,twojb,twomb,l_til_a,twoja,twoma);
+  std::complex<double> term2 = (1/sqrt(2))*   radial_int_fbga*ang_int_sig_y(twoL,twoJ,twoM,-1,lb,twojb,twomb,l_til_a,twoja,twoma);
+  std::complex<double> term3 =                radial_int_fbga*ang_int_sig_z(twoL,twoJ,twoM, 0,lb,twojb,twomb,l_til_a,twoja,twoma);
+  std::complex<double> term4 = -(1/sqrt(2))*i*radial_int_fbga*ang_int_sig_z(twoL,twoJ,twoM, 1,lb,twojb,twomb,l_til_a,twoja,twoma);
+  std::complex<double> term5 = (1/sqrt(2))*   radial_int_fbga*ang_int_sig_y(twoL,twoJ,twoM, 1,lb,twojb,twomb,l_til_a,twoja,twoma);
 
   std::complex<double> term6 = -(1/sqrt(2))*i*radial_int_gbfa*ang_int_sig_x(twoL,twoJ,twoM,-1,l_til_b,twojb,twomb,la,twoja,twoma);
-  std::complex<double> term7 = -(1/sqrt(2))*radial_int_gbfa*ang_int_sig_y(twoL,twoJ,twoM,-1,l_til_b,twojb,twomb,la,twoja,twoma);
-  std::complex<double> term8 = -i*radial_int_gbfa*ang_int_sig_z(twoL,twoJ,twoM,0,l_til_b,twojb,twomb,la,twoja,twoma);
-  std::complex<double> term9 = (1/sqrt(2))*radial_int_gbfa*ang_int_sig_x(twoL,twoJ,twoM,1,l_til_b,twojb,twomb,la,twoja,twoma);
-  std::complex<double> term10 = -(1/sqrt(2))*radial_int_gbfa*ang_int_sig_y(twoL,twoJ,twoM,1,l_til_b,twojb,twomb,la,twoja,twoma);
+  std::complex<double> term7 = -(1/sqrt(2))*  radial_int_gbfa*ang_int_sig_y(twoL,twoJ,twoM,-1,l_til_b,twojb,twomb,la,twoja,twoma);
+  std::complex<double> term8 = -i*            radial_int_gbfa*ang_int_sig_z(twoL,twoJ,twoM, 0,l_til_b,twojb,twomb,la,twoja,twoma);
+  std::complex<double> term9 = (1/sqrt(2))*   radial_int_gbfa*ang_int_sig_x(twoL,twoJ,twoM, 1,l_til_b,twojb,twomb,la,twoja,twoma);
+  std::complex<double> term10 = -(1/sqrt(2))* radial_int_gbfa*ang_int_sig_y(twoL,twoJ,twoM, 1,l_til_b,twojb,twomb,la,twoja,twoma);
 
   return term1 + term2 + term3 + term4 + term5 + term6 + term7 + term8 + term9 + term10;
 }
@@ -135,26 +141,31 @@ std::complex<double> ME_Y_JLM(const DiracSpinor &Fa, const DiracSpinor &Fb, cons
 // Calculating |< jb || alpha . a^(sigma)_J || ja >|^2
 // but using ME calculated by Johnson. 
 
-// We can calculate <ka||C^k||kb> using Angular::Ck_kk(int k, int ka, int kb)
+// Calculating <ka||C^k||kb> using Angular::Ck_kk(int k, int ka, int kb)
 // Rescaling from C^sigma -> Y^sigma
 double RME_sigma_Y(int kappa_b, int kappa_a, const int sigma, const int twoJ){
   
-  int J = int(0.5*( twoJ + 0.001));
+  int J = int(0.5*( twoJ + 0.001)); // Convert int twoJ -> int J
 
+  // Matrix elements calculated by Johnson (p. 143)
   if (sigma == -1){
     return -(sqrt((twoJ+1)/(4*M_PI)))*Angular::Ck_kk(J,-kappa_b,kappa_a);
   }
 
   else if (sigma == 0){
+    // Ensuring no divide by zero errors occur
     if (twoJ==-1 || twoJ == 0){
       return 0;
     }
+
     else{
-    return (sqrt((twoJ+1)/(4*M_PI)))*((kappa_a - kappa_b)/(sqrt(J*(J+1))))*Angular::Ck_kk(J,kappa_b,kappa_a);
+    return (sqrt((twoJ+1)/(4*M_PI)))
+          *((kappa_a - kappa_b)/(sqrt(J*(J+1))))*Angular::Ck_kk(J,kappa_b,kappa_a);
     }
   }
 
   else if (sigma == 1){
+    // Ensuring no divide by zero errors occur
     if (twoJ==-1 || twoJ == 0){
       return 0;
     }
@@ -171,7 +182,8 @@ std::complex<double> RME_alpha_jL_Y(const DiracSpinor &Fa, const DiracSpinor &Fb
 
   std::complex<double> i(0.0,1.0); 
 
-  return i*radial_int(Fb.f(), Fa.g(), jL, grid)*RME_sigma_Y(Fb.kappa(), -Fa.kappa(),sigma,twoJ) - i*radial_int(Fb.g(), Fa.f(), jL, grid)*RME_sigma_Y(-Fb.kappa(), Fa.kappa(),sigma,twoJ);
+  return i*radial_int(Fb.f(), Fa.g(), jL, grid)*RME_sigma_Y(Fb.kappa(), -Fa.kappa(),sigma,twoJ) 
+        - i*radial_int(Fb.g(), Fa.f(), jL, grid)*RME_sigma_Y(-Fb.kappa(), Fa.kappa(),sigma,twoJ);
 }
 
 
@@ -195,31 +207,40 @@ std::complex<double> RME_alpha_jL_Y(const DiracSpinor &Fa, const DiracSpinor &Fb
 // absolute value squared => |< jb || alpha . a^(sigma)_J || ja >|^2
 // For a single state (need to sum over initial and final states)
 double abs_RME_alpha_a(bool Johnson, const DiracSpinor &Fa, const DiracSpinor &Fb, const std::vector<double> jJ, const std::vector<double> jJplus1, const std::vector<double> jJminus1, const int sigma, const int twoJ){
-  
-  std::complex<double> full_ME;
 
-  // USING my matrix elements
+  double eta = double(sqrt(twoJ/(2*twoJ+2)));
+  double zeta = double(sqrt((twoJ+2)/(2*twoJ+2)));
+
+  // Using my matrix elements
   if (Johnson == false){
-    if (sigma==-1){
-      // a^(-1)_{J,M} = sqrt(J/(2J+1)) a_{J,J-1,M} - sqrt((J+1)/(2J+1)) a_{J,J+1,M}
-      full_ME = sqrt(twoJ/(2*twoJ+2))*ME_Y_JLM(Fa,Fb,jJminus1,twoJ-2,twoJ,0,1,1) - sqrt((twoJ+1)/(2*twoJ+2))*ME_Y_JLM(Fa,Fb,jJplus1,twoJ+2,twoJ,0,1,1);
+
+    std::complex<double> full_ME;
+
+    if (sigma == -1){
+      // a^(-1)_{J,M} = - eta a_{J,J-1,M} - zeta a_{J,J+1,M}
+      full_ME = -eta*ME_jL_Y_JLM(Fa,Fb,jJminus1,twoJ-2,twoJ,0,1,1) // L = J - 1
+              - zeta*ME_jL_Y_JLM(Fa,Fb,jJplus1,twoJ+2,twoJ,0,1,1); // L = J + 1
     }
 
-    else if (sigma==0){
+    else if (sigma == 0){
       // a^(0)_{J,M} = a_{J,J,M}
-      full_ME = ME_Y_JLM(Fa,Fb,jJ,twoJ,twoJ,0,1,1);
+      full_ME = ME_jL_Y_JLM(Fa,Fb,jJ,twoJ,twoJ,0,1,1);  // L = J
     }
 
-    else if (sigma==-1){
-      // a^(1)_{J,M} = sqrt((J+1)/(2J+1)) a_{J,J-1,M} + sqrt(J/(2J+1)) a_{J,J+1,M}
-      full_ME = sqrt((twoJ+1)/(2*twoJ+2))*ME_Y_JLM(Fa,Fb,jJminus1,twoJ-2,twoJ,0,1,1) + sqrt(twoJ/(2*twoJ+2))*ME_Y_JLM(Fa,Fb,jJplus1,twoJ+2,twoJ,0,1,1);
+    else if (sigma == 1){
+      // a^(1)_{J,M} = zeta a_{J,J-1,M} - eta a_{J,J+1,M}
+
+      full_ME = zeta*ME_jL_Y_JLM(Fa,Fb,jJminus1,twoJ-2,twoJ,0,1,1) // L = J - 1
+              - eta*ME_jL_Y_JLM(Fa,Fb,jJplus1,twoJ+2,twoJ,0,1,1); // L = J + 1
     }
 
     if (Angular::threej_2(Fb.twoj(),twoJ,Fa.twoj(),-1,0,1) == 0){
     return 0; 
   }
 
-    return pow(abs(Angular::neg1pow_2(Fb.twoj() - 1)* (1/Angular::threej_2(Fb.twoj(),twoJ,Fa.twoj(),-1,0,1)) * full_ME),2);
+    // Using Wigner-Ekhart to convert from full matrix element to reduced matrix element
+    return pow(abs(Angular::neg1pow_2(1 - Fb.twoj())
+            *(1/Angular::threej_2(Fb.twoj(),twoJ,Fa.twoj(),-1,0,1)) * full_ME),2);
   }
 
   // USING JOHNSON matrix elements
@@ -232,21 +253,30 @@ double abs_RME_alpha_a(bool Johnson, const DiracSpinor &Fa, const DiracSpinor &F
     std::complex<double> full_RME;
 
     if (sigma == -1){
-      full_RME = double((twoJ/(2*twoJ+2)))*RME_alpha_jL_Y(Fa,Fb,-1,twoJ,jJminus1) 
-      + double(sqrt(twoJ/(2*twoJ+2))*sqrt((twoJ+1)/(2*twoJ+2)))*RME_alpha_jL_Y(Fa,Fb,1,twoJ,jJminus1) 
-      + double(((twoJ+2)/(2*twoJ+2)))*RME_alpha_jL_Y(Fa,Fb,-1,twoJ,jJplus1) 
-      - double(sqrt(twoJ/(2*twoJ+2))*sqrt((twoJ+1)/(2*twoJ+2)))*RME_alpha_jL_Y(Fa,Fb,1,twoJ,jJplus1);
+
+      // a^(-1)_{J,M} = sqrt(J/(2J+1)) j_(J-1) Y_{J,J-1,M} - sqrt((J+1)/(2J+1)) j_(J+1) Y_{J,J+1,M}
+
+      full_RME = -eta*eta*RME_alpha_jL_Y(Fa,Fb,-1,twoJ,jJminus1) 
+                - eta*zeta*RME_alpha_jL_Y(Fa,Fb,1,twoJ,jJminus1) 
+                + zeta*zeta*RME_alpha_jL_Y(Fa,Fb,-1,twoJ,jJplus1) 
+                - eta*zeta*RME_alpha_jL_Y(Fa,Fb,1,twoJ,jJplus1);
     }
 
     else if (sigma == 0){
+
+      // a^(0)_{J,M} = jJ Y_{J,J,M}
+
       full_RME = RME_alpha_jL_Y(Fa,Fb,0,twoJ,jJ);
     }
 
     else if (sigma == -1){
-      full_RME = double(sqrt(twoJ/(2*twoJ+2))*sqrt((twoJ+1)/(2*twoJ+2)))*RME_alpha_jL_Y(Fa,Fb,-1,twoJ,jJminus1) 
-      + double((twoJ+2)/(2*twoJ + 2))*RME_alpha_jL_Y(Fa,Fb,1,twoJ,jJminus1) 
-      - double(sqrt(twoJ/(2*twoJ+2))*sqrt((twoJ+1)/(2*twoJ+2)))*RME_alpha_jL_Y(Fa,Fb,-1,twoJ,jJplus1) 
-      + double(twoJ/(2*twoJ+2))*RME_alpha_jL_Y(Fa,Fb,1,twoJ,jJplus1);
+
+      // a^(1)_{J,M} = sqrt((J+1)/(2J+1)) j_(J-1) Y_{J,J-1,M} + sqrt(J/(2J+1)) j_(J+1) Y_{J,J+1,M}
+
+      full_RME = -eta*zeta*RME_alpha_jL_Y(Fa,Fb,-1,twoJ,jJminus1) 
+                - zeta*zeta*RME_alpha_jL_Y(Fa,Fb,1,twoJ,jJminus1) 
+                - eta*zeta*RME_alpha_jL_Y(Fa,Fb,-1,twoJ,jJplus1) 
+                + eta*eta*RME_alpha_jL_Y(Fa,Fb,1,twoJ,jJplus1);
     }
 
     return pow(abs(full_RME),2);
