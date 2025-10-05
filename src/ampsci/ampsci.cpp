@@ -547,8 +547,8 @@ Wavefunction ampsci(const IO::InputBlock &input) {
   // Set up min and max masses (This should become inputs later on)
 
   double min_mass_MeV = 1e-5; // 10 eV
-  double max_mass_MeV = 0.001;  // 1 keV
-  int no_masses = 20;        // Number of masses
+  double max_mass_MeV = 0.05;  // 1 keV
+  int no_masses = 50;        // Number of masses
 
   // For plotting, usually we want to plot logarithmically.
   // So generate a vector of masses with logarithmic intervals
@@ -556,7 +556,7 @@ Wavefunction ampsci(const IO::InputBlock &input) {
   const auto ms_in_MeV = qip::logarithmic_range(min_mass_MeV, max_mass_MeV, no_masses);
 
   // For later: Add dark matter velocity distribution for averaging over velocities
-  double v = 10e-3; // c, Average velocity
+  double v = 1e-3; // c, Average velocity
 
   // Output file for masses and rates/reduced matrix elements
   // Should ask eventually how to do this better
@@ -596,6 +596,8 @@ Wavefunction ampsci(const IO::InputBlock &input) {
 		double tot_RME_sq_J = 0.0;  // RME using Johnsons calculations
     double tot_RME_EDA = 0.0;   // Electric-dipole approximation using my calculations
     double tot_RME_EDA_J = 0.0; // Electric-dipole approximation using Johnsons calculations
+    double tot_RME_e = 0.0;     // E1 Length form
+    double tot_RME_e_v = 0.0;   // E1 Velocity form
 
     // Summing over J/L to generate spherical bessel functions for
     // L = J - 1, L = J, L = J + 1
@@ -635,10 +637,14 @@ Wavefunction ampsci(const IO::InputBlock &input) {
         tot_RME_EDA += abs_RME_total_EDA(false, wf.vHF(), Fa, E, 2*1, (1.0/3.0)*grid.r()*q, jL.at(1+2), jL.at(1));
         tot_RME_EDA_J += abs_RME_total_EDA(true, wf.vHF(), Fa, E, 2*1, (1.0/3.0)*grid.r()*q, jL.at(1+2), jL.at(1));
 
+        // Electric dipole approximation (Plane wave set to 1)
+        tot_RME_e += RME_total_e(wf.vHF(), Fa, E);
+        tot_RME_e_v += RME_total_e_v(wf.vHF(), Fa, E);
+
     } // End Fa loop
 
 		std::cout <<" End m = "<< mass_in_MeV <<std::endl;
-    output << mass_in_MeV << " " << tot_RME_sq << " " << tot_RME_sq_J << " " << tot_RME_EDA_J << " " << tot_RME_EDA << "\n";
+    output << mass_in_MeV << " " << tot_RME_sq << " " << tot_RME_sq_J << " " << tot_RME_EDA_J << " " << tot_RME_EDA << " " << tot_RME_e << " " << tot_RME_e_v << "\n";
     //}// End Jmax loop
   } // End mass loop
 
