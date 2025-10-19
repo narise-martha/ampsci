@@ -316,7 +316,7 @@ bool check_radial_grid(double Emax_au, double qmax_au, const Grid &rgrid) {
               << "; consider changing to loglinear\n";
   }
 
-  // *Very* rough estimate of good aximum q range
+  // *Very* rough estimate of good maximum q range
   const auto i = rgrid.getIndex(1.0);
   const auto dr_q = rgrid.drdu(i) * rgrid.du();
   const auto qmax_targ = 1.5 * 2.0 * M_PI / (3.0 * dr_q);

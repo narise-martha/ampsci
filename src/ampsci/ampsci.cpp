@@ -546,9 +546,9 @@ Wavefunction ampsci(const IO::InputBlock &input) {
 
   // Set up min and max masses (This should become inputs later on)
 
-  double min_mass_MeV = 1e-5; // 10 eV
-  double max_mass_MeV = 0.05;  // 1 keV
-  int no_masses = 50;        // Number of masses
+  double min_mass_MeV = 1e-5;   // 10 eV
+  double max_mass_MeV = 0.05;   // 1 keV
+  int no_masses = 50;           // Number of masses
 
   // For plotting, usually we want to plot logarithmically.
   // So generate a vector of masses with logarithmic intervals
@@ -574,8 +574,12 @@ Wavefunction ampsci(const IO::InputBlock &input) {
 
   //std::ofstream output(fileName);
 
+  int mass_counter = 0;
+
   // Summing over masses
   for (auto mass_in_MeV : ms_in_MeV) {
+
+    mass_counter += 1;
 
     // For each mass, we need to calculate the energy, E=mc^2, of the incoming
     // dark photon, in order to calculate what final continuum states are possible.
@@ -589,15 +593,19 @@ Wavefunction ampsci(const IO::InputBlock &input) {
     // (or, just set v = 10^-3 c)
 
     // Momentum in atomic units (Needed for Bessel functions and velocity averaging)
-    double q = E * v / PhysConst::c;
+    //double q = E * v / PhysConst::c; // For dark photon
+    double q = E*PhysConst::alpha; // For regular photon (?) check
 
     // Initialising the sum of the square of the reduced matrix elements
-    double tot_RME_sq = 0.0;    // RME using my calculations
-		double tot_RME_sq_J = 0.0;  // RME using Johnsons calculations
-    double tot_RME_EDA = 0.0;   // Electric-dipole approximation using my calculations
-    double tot_RME_EDA_J = 0.0; // Electric-dipole approximation using Johnsons calculations
-    double tot_RME_e = 0.0;     // E1 Length form
-    double tot_RME_e_v = 0.0;   // E1 Velocity form
+    double tot_RME_sq = 0.0;        // RME using my calculations
+		double tot_RME_sq_J = 0.0;      // RME using Johnsons calculations
+    double tot_RME_EDA = 0.0;       // Electric-dipole approximation using my calculations
+    double tot_RME_EDA_J = 0.0;     // Electric-dipole approximation using Johnsons calculations
+    double tot_RME_e = 0.0;         // E1 Length form
+    double tot_RME_e_v = 0.0;       // E1 Velocity form
+    double tot_RME_Ben = 0.0;       // RME using Ben's calculations
+    double tot_RME_Ben_EDA = 0.0;   // Electric-dipole approximation using Ben's calculations (L=0)
+    double tot_RME_Ben_Full_EDA = 0.0;
 
     // Summing over J/L to generate spherical bessel functions for
     // L = J - 1, L = J, L = J + 1
@@ -605,14 +613,16 @@ Wavefunction ampsci(const IO::InputBlock &input) {
     
     std::vector<std::vector<double>> jL(Jmax+3+1);
 
+    std::vector<double> qr = grid.r() * q;
+
     for (int L = -1; L < (Jmax+2)+1; L++) {
 			if (L == -1){
 				// j_{-1} = (-1)^{-1} j_1
-				jL[0] = -0.0*SphericalBessel::fillBesselVec(1, grid.r() * q);
+				jL[0] = -0.0*SphericalBessel::fillBesselVec(1, qr);
 			}
 
 			else{
-      jL[L+1] = SphericalBessel::fillBesselVec(L, grid.r() * q);
+      jL[L+1] = SphericalBessel::fillBesselVec(L, qr);
 			}
 
     } // End L loop
@@ -626,25 +636,28 @@ Wavefunction ampsci(const IO::InputBlock &input) {
       // Sum over J values
       for (int J = 0; J < (Jmax + 1); J++){        
                                                                   // j_J,      j_(J+1),     j_(J-1)
-          tot_RME_sq += abs_RME_total(false, wf.vHF(), Fa, E, 2*J, jL.at(J+1), jL.at(J+2), jL.at(J));
-					tot_RME_sq_J += abs_RME_total(true, wf.vHF(), Fa, E, 2*J, jL.at(J+1), jL.at(J+2), jL.at(J));
+          tot_RME_sq += abs_RME_total(0, wf.vHF(), Fa, E, 2*J, jL.at(J+1), jL.at(J+2), jL.at(J),qr);
+					tot_RME_sq_J += abs_RME_total(1, wf.vHF(), Fa, E, 2*J, jL.at(J+1), jL.at(J+2), jL.at(J),qr);
+          tot_RME_Ben += abs_RME_total(2, wf.vHF(), Fa, E, 2*J, jL.at(J+1), jL.at(J+2), jL.at(J),qr);
         
         } // End J loop
 
         // Electric dipole approximation
         // Set J = 1, Bessel function j_1 approx kr/3
         // Also for electric dipole approximation, only sum over sigma = 0,1
-        tot_RME_EDA += abs_RME_total_EDA(false, wf.vHF(), Fa, E, 2*1, (1.0/3.0)*grid.r()*q, jL.at(1+2), jL.at(1));
-        tot_RME_EDA_J += abs_RME_total_EDA(true, wf.vHF(), Fa, E, 2*1, (1.0/3.0)*grid.r()*q, jL.at(1+2), jL.at(1));
+        tot_RME_EDA += abs_RME_total_EDA(0, wf.vHF(), Fa, E, 2*1, (1.0/3.0)*qr, jL.at(1+2), jL.at(1),qr);
+        tot_RME_EDA_J += abs_RME_total_EDA(1, wf.vHF(), Fa, E, 2*1, (1.0/3.0)*qr, jL.at(1+2), jL.at(1),qr);
+        tot_RME_Ben_EDA += abs_RME_total_EDA(2, wf.vHF(), Fa, E, 2*1, (1.0/3.0)*qr, jL.at(1+2), jL.at(1),qr);
 
         // Electric dipole approximation (Plane wave set to 1)
         tot_RME_e += RME_total_e(wf.vHF(), Fa, E);
         tot_RME_e_v += RME_total_e_v(wf.vHF(), Fa, E);
+        tot_RME_Ben_Full_EDA += abs_RME_total_EDA_Ben(wf.vHF(), Fa, E,(1.0/3.0)*qr);
 
     } // End Fa loop
 
-		std::cout <<" End m = "<< mass_in_MeV <<std::endl;
-    output << mass_in_MeV << " " << tot_RME_sq << " " << tot_RME_sq_J << " " << tot_RME_EDA_J << " " << tot_RME_EDA << " " << tot_RME_e << " " << tot_RME_e_v << "\n";
+		std::cout << mass_counter << "/" << no_masses << " masses computed" <<std::endl;
+    output << mass_in_MeV << " " << tot_RME_sq << " " << tot_RME_sq_J << " " << tot_RME_EDA_J << " " << tot_RME_EDA << " " << tot_RME_e << " " << tot_RME_e_v << " " << tot_RME_Ben << " " << tot_RME_Ben_EDA << " "<< tot_RME_Ben_Full_EDA << "\n";
     //}// End Jmax loop
   } // End mass loop
 

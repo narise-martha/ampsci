@@ -30,6 +30,22 @@ double radial_int(const std::vector<double> &func1,
   return NumCalc::integrate(grid.du(), 0, 0, grid.drdu(), func1, func2, jL);
 }
 
+double R_plus(const DiracSpinor &Fa, const DiracSpinor &Fb, const std::vector<double> &tK, Grid grid){
+  return radial_int(Fa.f(), Fb.f(), tK, grid) + radial_int(Fa.g(), Fb.g(), tK, grid);
+}
+
+double R_minus(const DiracSpinor &Fa, const DiracSpinor &Fb, const std::vector<double> &tK, Grid grid){
+  return radial_int(Fa.f(), Fb.f(), tK, grid) - radial_int(Fa.g(), Fb.g(), tK, grid);
+}
+
+double P_plus(const DiracSpinor &Fa, const DiracSpinor &Fb, const std::vector<double> &tK, Grid grid){
+  return radial_int(Fb.f(), Fa.g(), tK, grid) + radial_int(Fb.g(), Fa.f(), tK, grid);
+}
+
+double P_minus(const DiracSpinor &Fa, const DiracSpinor &Fb, const std::vector<double> &tK, Grid grid){
+  return radial_int(Fb.f(), Fa.g(), tK, grid) - radial_int(Fb.g(), Fa.f(), tK, grid);
+}
+
 //==============================================================================
 
 // ANGULAR INTAGRAL FUNCTIONS
@@ -56,6 +72,10 @@ double ME_spherical_harm(const int twoL, const int twoM, const int lb, const int
     // Y_{L,M} = sqrt((2L+1)/4pi) C^L_M
     return sqrt((twoL+1)/4*M_PI)*Angular::neg1pow_2(2*lb - twomb)*Angular::threej_2(2*lb,twoL,2*la,-twomb,twoM,twoma)*reduced_ME;
 }
+
+//==============================================================================
+
+// My version of calculations
 
 // Angular integral of the form 
 // C(L,1,J;M-\lambda,\lambda,M) \Omega_b^T Y_{L,M-\lambda} sigma_i \Omega_a
@@ -116,6 +136,8 @@ std::complex<double> ME_jL_Y_JLM(const DiracSpinor &Fa, const DiracSpinor &Fb, c
 
   std::complex<double> i(0.0,1.0); 
 
+  // There are so many terms because of the sum over the polarisation vectors, dot producted with the
+  // spin-1 basis vactors. 
   std::complex<double> term1 = (1/sqrt(2))*i* radial_int_fbga*ang_int('x',twoL,twoJ,-1,lb,twojb,l_til_a,twoja);
   std::complex<double> term2 = (1/sqrt(2))*i* radial_int_fbga*ang_int('y',twoL,twoJ,-1,lb,twojb,l_til_a,twoja);
   std::complex<double> term3 =                radial_int_fbga*ang_int('z',twoL,twoJ, 0,lb,twojb,l_til_a,twoja);
@@ -133,8 +155,9 @@ std::complex<double> ME_jL_Y_JLM(const DiracSpinor &Fa, const DiracSpinor &Fb, c
 
 //==============================================================================
 
+// JOHNSON METHOD
+
 // Calculating |< jb || alpha . a^(sigma)_J || ja >|^2
-// but using ME calculated by Johnson. 
 
 // Calculating <ka||C^k||kb> using Angular::Ck_kk(int k, int ka, int kb)
 // Rescaling from C^sigma -> Y^sigma
@@ -149,7 +172,7 @@ double RME_sigma_Y(int kappa_b, int kappa_a, const int sigma, const int twoJ){
 
   else if (sigma == 0){
     // Ensuring no divide by zero errors occur
-    if (twoJ==-1 || twoJ == 0){
+    if (J==-1 || J == 0){
       return 0;
     }
 
@@ -161,7 +184,7 @@ double RME_sigma_Y(int kappa_b, int kappa_a, const int sigma, const int twoJ){
 
   else if (sigma == 1){
     // Ensuring no divide by zero errors occur
-    if (twoJ==-1 || twoJ == 0){
+    if (J==-1 || J == 0){
       return 0;
     }
     else{
@@ -181,8 +204,7 @@ std::complex<double> RME_alpha_jL_Y(const DiracSpinor &Fa, const DiracSpinor &Fb
         - i*radial_int(Fb.g(), Fa.f(), jL, grid)*RME_sigma_Y(-Fb.kappa(), Fa.kappa(),sigma,twoJ);
 }
 
-
-
+//==============================================================================
 
 
 
@@ -201,7 +223,10 @@ std::complex<double> RME_alpha_jL_Y(const DiracSpinor &Fa, const DiracSpinor &Fb
 // < jb || alpha . a^(sigma)_J || ja > = (-1)^(ja-jb) [Wig3j(jb, J, ja; -1/2, 0, 1/2)]^{-1} < jb, 1/2 | alpha . a^(sigma)_{J,0} | ja, 1/2 >
 // absolute value squared => |< jb || alpha . a^(sigma)_J || ja >|^2
 // For a single state (need to sum over initial and final states)
-double abs_RME_alpha_a(bool Johnson, const DiracSpinor &Fa, const DiracSpinor &Fb, const std::vector<double> jJ, const std::vector<double> jJplus1, const std::vector<double> jJminus1, const int sigma, const int twoJ){
+double abs_RME_alpha_a(int method, const DiracSpinor &Fa, const DiracSpinor &Fb, 
+                        const std::vector<double> jJ, const std::vector<double> jJplus1, 
+                        const std::vector<double> jJminus1, const int sigma, const int twoJ, 
+                        const std::vector<double> qr){
 
   double eta = double(sqrt(twoJ/(2*twoJ+2)));
   double zeta = double(sqrt((twoJ+2)/(2*twoJ+2)));
@@ -209,19 +234,21 @@ double abs_RME_alpha_a(bool Johnson, const DiracSpinor &Fa, const DiracSpinor &F
   int J = int(0.5*( twoJ + 0.001)); // Convert int twoJ -> int J
   const auto &grid = Fa.grid();
   using namespace qip::overloads;
+  const auto &gr = Fb.grid();
 
-  double R_plus = radial_int(Fa.f(), Fb.f(), jJ, grid) + radial_int(Fa.g(), Fb.g(), jJ, grid);
+  std::complex<double> i(0.0,1.0);
+  std::vector<double> jJ_dash = J*(jJ/qr) - jJplus1; //NumCalc::derivative(jJ,gr.drdu(), gr.du(), 1);
 
-  double temporal_RME = R_plus*Angular::Ck_kk(J,Fb.kappa(),Fa.kappa());
+  double temporal_RME = R_plus(Fa,Fb,jJ,grid)*Angular::Ck_kk(J,Fb.kappa(),Fa.kappa());
 
   // Using my matrix elements
-  if (Johnson == false){
+  if (method == 0){
 
     std::complex<double> spatial_ME;
 
     if (sigma == -1){
       // a^(-1)_{J,M} = - eta a_{J,J-1,M} - zeta a_{J,J+1,M}
-      spatial_ME = -eta*ME_jL_Y_JLM(Fa,Fb,jJminus1,twoJ-2,twoJ) // L = J - 1
+      spatial_ME = eta*ME_jL_Y_JLM(Fa,Fb,jJminus1,twoJ-2,twoJ) // L = J - 1
               - zeta*ME_jL_Y_JLM(Fa,Fb,jJplus1,twoJ+2,twoJ); // L = J + 1
     }
 
@@ -234,7 +261,7 @@ double abs_RME_alpha_a(bool Johnson, const DiracSpinor &Fa, const DiracSpinor &F
       // a^(1)_{J,M} = zeta a_{J,J-1,M} - eta a_{J,J+1,M}
 
       spatial_ME = zeta*ME_jL_Y_JLM(Fa,Fb,jJminus1,twoJ-2,twoJ) // L = J - 1
-              - eta*ME_jL_Y_JLM(Fa,Fb,jJplus1,twoJ+2,twoJ); // L = J + 1
+              + eta*ME_jL_Y_JLM(Fa,Fb,jJplus1,twoJ+2,twoJ); // L = J + 1
     }
 
     if (Angular::threej_2(Fb.twoj(),twoJ,Fa.twoj(),-1,0,1) == 0){
@@ -242,7 +269,7 @@ double abs_RME_alpha_a(bool Johnson, const DiracSpinor &Fa, const DiracSpinor &F
   }
 
     // Using Wigner-Ekhart to convert from full matrix element to reduced matrix element
-    return pow(abs(Angular::neg1pow_2(1 - Fb.twoj())
+    return pow(-abs(Angular::neg1pow_2(1 - Fb.twoj())
             *(1/Angular::threej_2(Fb.twoj(),twoJ,Fa.twoj(),-1,0,1)) * spatial_ME + temporal_RME),2);
   }
 
@@ -251,11 +278,9 @@ double abs_RME_alpha_a(bool Johnson, const DiracSpinor &Fa, const DiracSpinor &F
   // know the reduced matrix elements (since they can be composed of
   //  < b || C_J || a >, which are just rescaled spherical harmonics)
 
-  if (Johnson == true){
+  if (method == 1){
 
     std::complex<double> full_RME;
-
-    int J = int(0.5*( twoJ + 0.001)); // Convert int twoJ -> int J
 
     if (sigma == -1){
 
@@ -284,8 +309,74 @@ double abs_RME_alpha_a(bool Johnson, const DiracSpinor &Fa, const DiracSpinor &F
                 + eta*eta*RME_alpha_jL_Y(Fa,Fb,1,twoJ,jJplus1);
     }
 
-    return pow(abs(full_RME + temporal_RME),2);
+    return pow(abs(-full_RME + temporal_RME),2);
   } 
+
+  // Using Ben's calculations from the overleaf
+  // For vector case, gamma^\tila = 1
+
+  if (method == 2){
+
+    std::complex<double> spatial_RME;
+
+    if (sigma == -1){
+      spatial_RME = i*(P_minus(Fa,Fb,jJ_dash,grid)-(Fb.kappa() - Fa.kappa())
+                  *P_plus(Fa,Fb,jJ/qr,grid))*Angular::Ck_kk(J,Fb.kappa(),Fa.kappa());
+    }
+
+    if (sigma == 0){
+
+      if (J==-1 || J == 0){
+      return 0;
+      }
+
+      spatial_RME = -i*P_plus(Fa,Fb,jJ,grid)*((Fb.kappa() + Fa.kappa())/sqrt(J*(J+1)))
+                  *Angular::Ck_kk(J,Fb.kappa(),-Fa.kappa());
+    }
+
+    if (sigma == 1){
+      
+      if (J==-1 || J == 0){
+      return 0;
+      }
+
+      spatial_RME = i*(sqrt(J*(J+1))*P_minus(Fa,Fb,jJ/qr,grid) - ((Fb.kappa() - Fa.kappa())/sqrt(J*(J+1)))
+                  *P_plus(Fa,Fb,(jJ/qr)+ jJ_dash,grid))*Angular::Ck_kk(J,Fb.kappa(),Fa.kappa());
+    }
+
+    return (2*J + 1)*pow(abs(-spatial_RME + 0*temporal_RME),2);
+  }
+
+  // Using the equations directly from Johnson (p. 190) for the transverse (velocity) gauge
+
+  if (method == 3){
+    std::complex<double> total_RME;
+
+    if (sigma == -1){
+      total_RME = 0;
+    }
+
+    if (sigma == 0){
+      
+      if (J==-1 || J == 0){
+      return 0;
+      }
+
+      total_RME = ((Fb.kappa() + Fa.kappa())/(J+1))*Angular::Ck_kk(J,-Fb.kappa(),Fa.kappa())*P_plus(Fa,Fb,jJ,grid);
+    }
+
+    if (sigma == 1){
+      
+      if (J==-1 || J == 0){
+      return 0;
+      }
+
+      total_RME = Angular::Ck_kk(J,Fb.kappa(),Fa.kappa())*(((Fa.kappa()-Fb.kappa())/(J+1))*P_plus(Fa,Fb,jJ_dash+(jJ/qr),grid) + J*P_minus(Fa,Fb,jJ/qr,grid));
+    }
+
+    return i*sqrt((2*J + 1)*(J+1)/(4*M_PI*J))*total_RME;
+
+  }
 
   }
 
@@ -295,7 +386,10 @@ double abs_RME_alpha_a(bool Johnson, const DiracSpinor &Fa, const DiracSpinor &F
 // < jb || alpha . a^(sigma)_J || ja >
 // for a given initial state, and sums over all the final states that result in an ionised state.
 // E = mc^2, energy of the dark photon, m, mass of dark photon 
-double abs_RME_total(bool Johnson, const HF::HartreeFock *vHF, const DiracSpinor &Fa, const double E, const int twoJ, const std::vector<double> jJ, const std::vector<double> jJplus1, const std::vector<double> jJminus1) {
+double abs_RME_total(int method, const HF::HartreeFock *vHF, const DiracSpinor &Fa, 
+                    const double E, const int twoJ, const std::vector<double> jJ, 
+                    const std::vector<double> jJplus1, const std::vector<double> jJminus1, 
+                    const std::vector<double> qr) {
 
   ContinuumOrbitals cntm(vHF);
 
@@ -320,7 +414,7 @@ double abs_RME_total(bool Johnson, const HF::HartreeFock *vHF, const DiracSpinor
     for (int sigma = -1; sigma < 2; sigma++){
       double omega = (Fb.en() - Fa.en());
 
-      RME_tot += (1/pow(omega,1))*abs_RME_alpha_a(Johnson,Fa, Fb, jJ, jJplus1, jJminus1, sigma, twoJ); 
+      RME_tot += (1/pow(omega,1))*abs_RME_alpha_a(method,Fa, Fb, jJ, jJplus1, jJminus1, sigma, twoJ,qr); 
     }
   }
   return RME_tot;
@@ -329,7 +423,10 @@ double abs_RME_total(bool Johnson, const HF::HartreeFock *vHF, const DiracSpinor
 // Same as the function above, but we only want to sum over sigma = 0,1
 // Could make this more compact by adding another Boolian in the above function
 // For EDA true/false to change the sum over sigma
-double abs_RME_total_EDA(bool Johnson, const HF::HartreeFock *vHF, const DiracSpinor &Fa, const double E, const int twoJ, const std::vector<double> jJ, const std::vector<double> jJplus1, const std::vector<double> jJminus1) {
+double abs_RME_total_EDA(int method, const HF::HartreeFock *vHF, const DiracSpinor &Fa, 
+                          const double E, const int twoJ, const std::vector<double> jJ, 
+                          const std::vector<double> jJplus1, const std::vector<double> jJminus1, 
+                          const std::vector<double> qr) {
 
   ContinuumOrbitals cntm(vHF);
 
@@ -354,8 +451,47 @@ double abs_RME_total_EDA(bool Johnson, const HF::HartreeFock *vHF, const DiracSp
     for (int sigma = 0; sigma < 2; sigma++){
       double omega = (Fb.en() - Fa.en()); 
 
-      RME_tot += (1/pow(omega,1))*abs_RME_alpha_a(Johnson,Fa, Fb, jJ, jJplus1, jJminus1, sigma, twoJ); 
+      RME_tot += (1/pow(omega,1))*abs_RME_alpha_a(method,Fa, Fb, jJ, jJplus1, jJminus1, sigma, twoJ,qr); 
     }
+  }
+  return RME_tot;
+}
+
+double abs_RME_total_EDA_Ben(const HF::HartreeFock *vHF, const DiracSpinor &Fa, 
+                          const double E, const std::vector<double> jJ) {
+
+  ContinuumOrbitals cntm(vHF);
+
+  // Calculating final energy state.
+  // E_f = mc^2 - |E_i| = mc^2 + E_i
+  // since E_i < 0
+  const auto ec = E + Fa.en();
+
+  // If final energy is negative, ignore this state
+  // Only want ionised final states.
+  if (ec < 0.0) {
+    return 0.0;
+  }
+  const auto &grid = Fa.grid();
+  using namespace qip::overloads;
+
+  double RME;
+  double temporal_RME;
+  double omega;
+  
+  std::vector<double> ones(Fa.grid().size(),1);
+
+  // Solving for continuum states
+  cntm.solveContinuumHF(ec, 0, 4, &Fa);
+
+  // Calculating the RME of a single state, and then
+  // summing over the final states states, and sigma
+  double RME_tot = 0.0;
+  for (const auto &Fb : cntm.orbitals) {
+      omega = (Fb.en() - Fa.en()); 
+      RME = (sqrt(2)/3)*(P_minus(Fa,Fb,ones,grid) + (Fb.kappa() - Fa.kappa())*P_plus(Fa,Fb,ones,grid))*Angular::Ck_kk(1,Fb.kappa(),Fa.kappa());
+      temporal_RME = R_plus(Fa,Fb,jJ,grid)*Angular::Ck_kk(1,Fb.kappa(),Fa.kappa());
+      RME_tot += (1/omega)*pow(temporal_RME - RME,2);
   }
   return RME_tot;
 }
@@ -425,9 +561,11 @@ double RME_single_e_v(const DiracSpinor &Fa, const DiracSpinor &Fb, const auto r
   const auto &grid = Fa.grid();
   using namespace qip::overloads;
 
-  // Radial component int (fa*fb*r + ga*gb*r) dr
-  double V = radial_int(Fb.f(), Fa.g(), r, grid);
-  double W = radial_int(Fb.g(), Fa.f(), r, grid);
+  std::vector<double> ones(Fa.grid().size(),1);
+
+  // Radial component int (fa*fb + ga*gb) dr
+  double V = radial_int(Fb.f(), Fa.g(), ones, grid);
+  double W = radial_int(Fb.g(), Fa.f(), ones, grid);
 
   // Angular component <b|| sigma || a> = 2*<b||s||a>
   double C = 2*Angular::S_kk(-Fb.kappa(), Fa.kappa());
@@ -440,7 +578,7 @@ double RME_single_e_v(const DiracSpinor &Fa, const DiracSpinor &Fb, const auto r
   double omega = (Fb.en() - Fa.en());
 
   // Want just the reduced matrix element squared, remove (1/3)(alpha*omega)^2 term
-  return (abs(pow(matrix_elements, 2))/ (3.0*omega*omega));
+  return (abs(pow(matrix_elements, 2))/ (3.0*omega*omega)); // THIS SHOULD HAVE OMEGA^2 of DENOMINATOR
 }
 
 double RME_total_e_v(const HF::HartreeFock *vHF, const DiracSpinor &Fa, double E) {
