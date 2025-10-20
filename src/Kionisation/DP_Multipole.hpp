@@ -43,7 +43,7 @@ double P_plus(const DiracSpinor &Fa, const DiracSpinor &Fb, const std::vector<do
 }
 
 double P_minus(const DiracSpinor &Fa, const DiracSpinor &Fb, const std::vector<double> &tK, Grid grid){
-  return radial_int(Fb.f(), Fa.g(), tK, grid) - radial_int(Fb.g(), Fa.f(), tK, grid);
+  return radial_int(Fa.f(), Fb.g(), tK, grid) - radial_int(Fa.g(), Fb.f(), tK, grid);
 }
 
 //==============================================================================
@@ -358,23 +358,30 @@ double abs_RME_alpha_a(int method, const DiracSpinor &Fa, const DiracSpinor &Fb,
 
     if (sigma == 0){
       
-      if (J==-1 || J == 0){
+      if (J==-1){
       return 0;
       }
 
-      total_RME = ((Fb.kappa() + Fa.kappa())/(J+1))*Angular::Ck_kk(J,-Fb.kappa(),Fa.kappa())*P_plus(Fa,Fb,jJ,grid);
+      total_RME = ((Fb.kappa() + Fa.kappa())/(J+1))*Angular::Ck_kk(J,-Fb.kappa(),Fa.kappa())
+                  *P_plus(Fa,Fb,jJ,grid);
     }
 
     if (sigma == 1){
       
-      if (J==-1 || J == 0){
+      if (J==-1){
       return 0;
       }
 
-      total_RME = Angular::Ck_kk(J,Fb.kappa(),Fa.kappa())*(((Fa.kappa()-Fb.kappa())/(J+1))*P_plus(Fa,Fb,jJ_dash+(jJ/qr),grid) + J*P_minus(Fa,Fb,jJ/qr,grid));
+      total_RME = Angular::Ck_kk(J,Fb.kappa(),Fa.kappa())
+                *(((Fa.kappa()-Fb.kappa())/(J+1))*P_plus(Fa,Fb,jJ_dash+(jJ/qr),grid) 
+                - J*P_minus(Fa,Fb,jJ/qr,grid)); // I made this a minus, because I think Johnson's integrals are the other way around
     }
 
-    return i*sqrt((2*J + 1)*(J+1)/(4*M_PI*J))*total_RME;
+    if (J == 0){
+      return 0;
+      }
+
+    return pow(abs(i*sqrt((2*J + 1)*(J+1)/(4*M_PI*J))*total_RME),2);
 
   }
 

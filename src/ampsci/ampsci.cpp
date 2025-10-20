@@ -606,6 +606,9 @@ Wavefunction ampsci(const IO::InputBlock &input) {
     double tot_RME_Ben = 0.0;       // RME using Ben's calculations
     double tot_RME_Ben_EDA = 0.0;   // Electric-dipole approximation using Ben's calculations (L=0)
     double tot_RME_Ben_Full_EDA = 0.0;
+    double tot_RME_Johnson = 0.0;
+    double tot_RME_Johnson_EDA = 0.0;
+
 
     // Summing over J/L to generate spherical bessel functions for
     // L = J - 1, L = J, L = J + 1
@@ -639,6 +642,7 @@ Wavefunction ampsci(const IO::InputBlock &input) {
           tot_RME_sq += abs_RME_total(0, wf.vHF(), Fa, E, 2*J, jL.at(J+1), jL.at(J+2), jL.at(J),qr);
 					tot_RME_sq_J += abs_RME_total(1, wf.vHF(), Fa, E, 2*J, jL.at(J+1), jL.at(J+2), jL.at(J),qr);
           tot_RME_Ben += abs_RME_total(2, wf.vHF(), Fa, E, 2*J, jL.at(J+1), jL.at(J+2), jL.at(J),qr);
+          tot_RME_Johnson += abs_RME_total(3, wf.vHF(), Fa, E, 2*J, jL.at(J+1), jL.at(J+2), jL.at(J),qr);
         
         } // End J loop
 
@@ -648,6 +652,7 @@ Wavefunction ampsci(const IO::InputBlock &input) {
         tot_RME_EDA += abs_RME_total_EDA(0, wf.vHF(), Fa, E, 2*1, (1.0/3.0)*qr, jL.at(1+2), jL.at(1),qr);
         tot_RME_EDA_J += abs_RME_total_EDA(1, wf.vHF(), Fa, E, 2*1, (1.0/3.0)*qr, jL.at(1+2), jL.at(1),qr);
         tot_RME_Ben_EDA += abs_RME_total_EDA(2, wf.vHF(), Fa, E, 2*1, (1.0/3.0)*qr, jL.at(1+2), jL.at(1),qr);
+        tot_RME_Johnson_EDA += abs_RME_total_EDA(3, wf.vHF(), Fa, E, 2*1, (1.0/3.0)*qr, jL.at(1+2), jL.at(1),qr);
 
         // Electric dipole approximation (Plane wave set to 1)
         tot_RME_e += RME_total_e(wf.vHF(), Fa, E);
@@ -657,7 +662,7 @@ Wavefunction ampsci(const IO::InputBlock &input) {
     } // End Fa loop
 
 		std::cout << mass_counter << "/" << no_masses << " masses computed" <<std::endl;
-    output << mass_in_MeV << " " << tot_RME_sq << " " << tot_RME_sq_J << " " << tot_RME_EDA_J << " " << tot_RME_EDA << " " << tot_RME_e << " " << tot_RME_e_v << " " << tot_RME_Ben << " " << tot_RME_Ben_EDA << " "<< tot_RME_Ben_Full_EDA << "\n";
+    output << mass_in_MeV << " " << tot_RME_sq << " " << tot_RME_sq_J << " " << tot_RME_EDA_J << " " << tot_RME_EDA << " " << tot_RME_e << " " << tot_RME_e_v << " " << tot_RME_Ben << " " << tot_RME_Ben_EDA << " "<< tot_RME_Ben_Full_EDA << " " << tot_RME_Johnson << " " << tot_RME_Johnson_EDA << "\n";
     //}// End Jmax loop
   } // End mass loop
 
