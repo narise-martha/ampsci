@@ -43,7 +43,7 @@ double P_plus(const DiracSpinor &Fa, const DiracSpinor &Fb, const std::vector<do
 }
 
 double P_minus(const DiracSpinor &Fa, const DiracSpinor &Fb, const std::vector<double> &tK, Grid grid){
-  return radial_int(Fa.f(), Fb.g(), tK, grid) - radial_int(Fa.g(), Fb.f(), tK, grid);
+  return radial_int(Fb.f(), Fa.g(), tK, grid) - radial_int(Fb.g(), Fa.f(), tK, grid);
 }
 
 //==============================================================================
@@ -362,7 +362,7 @@ double abs_RME_alpha_a(int method, const DiracSpinor &Fa, const DiracSpinor &Fb,
       return 0;
       }
 
-      total_RME = ((Fb.kappa() + Fa.kappa())/(J+1))*Angular::Ck_kk(J,-Fb.kappa(),Fa.kappa())
+      total_RME = (double(Fb.kappa() + Fa.kappa())/(J+1))*Angular::Ck_kk(J,-Fb.kappa(),Fa.kappa())
                   *P_plus(Fa,Fb,jJ,grid);
     }
 
@@ -373,15 +373,15 @@ double abs_RME_alpha_a(int method, const DiracSpinor &Fa, const DiracSpinor &Fb,
       }
 
       total_RME = Angular::Ck_kk(J,Fb.kappa(),Fa.kappa())
-                *(((Fa.kappa()-Fb.kappa())/(J+1))*P_plus(Fa,Fb,jJ_dash+(jJ/qr),grid) 
-                - J*P_minus(Fa,Fb,jJ/qr,grid)); // I made this a minus, because I think Johnson's integrals are the other way around
+                *((double(Fa.kappa()-Fb.kappa())/(J+1))*P_plus(Fa,Fb,jJ_dash+(jJ/qr),grid) 
+                + J*P_minus(Fa,Fb,jJ/qr,grid)); // I made this a minus, because I think Johnson's integrals are the other way around
     }
 
     if (J == 0){
       return 0;
       }
 
-    return pow(abs(i*sqrt((2*J + 1)*(J+1)/(4*M_PI*J))*total_RME),2);
+    return pow(abs(i*sqrt(double(J+1)/(J))*total_RME),2);
 
   }
 
@@ -482,9 +482,10 @@ double abs_RME_total_EDA_Ben(const HF::HartreeFock *vHF, const DiracSpinor &Fa,
   const auto &grid = Fa.grid();
   using namespace qip::overloads;
 
-  double RME;
+  std::complex<double> RME;
   double temporal_RME;
   double omega;
+  std::complex<double> i(0.0,1.0); 
   
   std::vector<double> ones(Fa.grid().size(),1);
 
@@ -496,9 +497,9 @@ double abs_RME_total_EDA_Ben(const HF::HartreeFock *vHF, const DiracSpinor &Fa,
   double RME_tot = 0.0;
   for (const auto &Fb : cntm.orbitals) {
       omega = (Fb.en() - Fa.en()); 
-      RME = (sqrt(2)/3)*(P_minus(Fa,Fb,ones,grid) + (Fb.kappa() - Fa.kappa())*P_plus(Fa,Fb,ones,grid))*Angular::Ck_kk(1,Fb.kappa(),Fa.kappa());
+      RME = -i*(double(sqrt(2)/3.0))*(P_minus(Fa,Fb,ones,grid) - double(Fb.kappa() - Fa.kappa())*P_plus(Fa,Fb,ones,grid))*Angular::Ck_kk(1,Fb.kappa(),Fa.kappa());
       temporal_RME = R_plus(Fa,Fb,jJ,grid)*Angular::Ck_kk(1,Fb.kappa(),Fa.kappa());
-      RME_tot += (1/omega)*pow(temporal_RME - RME,2);
+      RME_tot += (1/omega)*pow(abs(temporal_RME - RME),2);
   }
   return RME_tot;
 }

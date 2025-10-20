@@ -548,7 +548,7 @@ Wavefunction ampsci(const IO::InputBlock &input) {
 
   double min_mass_MeV = 1e-5;   // 10 eV
   double max_mass_MeV = 0.05;   // 1 keV
-  int no_masses = 50;           // Number of masses
+  int no_masses = 40;           // Number of masses
 
   // For plotting, usually we want to plot logarithmically.
   // So generate a vector of masses with logarithmic intervals
