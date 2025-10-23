@@ -390,7 +390,7 @@ double abs_RME_alpha_a(int method, const DiracSpinor &Fa, const DiracSpinor &Fb,
     std::complex<double> spatial_RME;
 
     if (sigma == -1){
-      spatial_RME = -i*((Fb.kappa() - Fa.kappa())*P_plus(Fa,Fb,jJ/qr,grid) - P_minus(Fa,Fb,J*(jJ/qr) - jJplus1,grid))*Angular::Ck_kk(J,Fb.kappa(),-Fa.kappa());
+      spatial_RME = -i*((Fb.kappa() - Fa.kappa())*P_plus(Fa,Fb,jJ/qr,grid) - P_minus(Fa,Fb,J*(jJ/qr) - jJplus1,grid))*Angular::Ck_kk(J,Fb.kappa(),Fa.kappa());
     }
 
     if (sigma == 0){
@@ -399,7 +399,7 @@ double abs_RME_alpha_a(int method, const DiracSpinor &Fa, const DiracSpinor &Fb,
       return 0;
       }
 
-      spatial_RME = -i*(1/(sqrt(double(J*(J+1)))))*double(Fb.kappa() + Fa.kappa())*P_plus(Fa,Fb,jJ,grid)*Angular::Ck_kk(J,Fb.kappa(),Fa.kappa());
+      spatial_RME = -i*(1/(sqrt(double(J*(J+1)))))*double(Fb.kappa() + Fa.kappa())*P_plus(Fa,Fb,jJ,grid)*Angular::Ck_kk(J,Fb.kappa(),-Fa.kappa());
     }
 
     if (sigma == 1){
@@ -408,7 +408,7 @@ double abs_RME_alpha_a(int method, const DiracSpinor &Fa, const DiracSpinor &Fb,
       return 0;
       }
 
-      spatial_RME = i*(sqrt(double(J+1)/J))*((Fb.kappa() - Fa.kappa())*P_plus(Fa,Fb,(jJ/qr) - jJplus1/(J+1),grid) - J*P_minus(Fa,Fb,jJ/qr,grid))*Angular::Ck_kk(J,Fb.kappa(),-Fa.kappa());
+      spatial_RME = i*(sqrt(double(J+1)/J))*((Fb.kappa() - Fa.kappa())*P_plus(Fa,Fb,(jJ/qr) - jJplus1/(J+1),grid) - J*P_minus(Fa,Fb,jJ/qr,grid))*Angular::Ck_kk(J,Fb.kappa(),Fa.kappa());
     }
 
     return (2*J + 1)*pow(abs(-spatial_RME + 0*temporal_RME),2);
@@ -527,9 +527,9 @@ double abs_RME_total_EDA_Ben(const HF::HartreeFock *vHF, const DiracSpinor &Fa,
   double RME_tot = 0.0;
   for (const auto &Fb : cntm.orbitals) {
       omega = (Fb.en() - Fa.en()); 
-      RME = -i*(double(sqrt(2)/3.0))*(P_minus(Fa,Fb,ones,grid) - double(Fb.kappa() - Fa.kappa())*P_plus(Fa,Fb,ones,grid))*Angular::Ck_kk(1,Fb.kappa(),Fa.kappa());
+      RME = i*(double(sqrt(2.0)/3.0))*(-P_minus(Fa,Fb,ones,grid) + double(Fb.kappa() - Fa.kappa())*P_plus(Fa,Fb,ones,grid))*Angular::Ck_kk(1,Fb.kappa(),Fa.kappa());
       temporal_RME = R_plus(Fa,Fb,jJ,grid)*Angular::Ck_kk(1,Fb.kappa(),Fa.kappa());
-      RME_tot += (1/omega)*pow(abs(temporal_RME - RME),2);
+      RME_tot += (1/omega)*pow(abs(0*temporal_RME - RME),2);
   }
   return RME_tot;
 }
