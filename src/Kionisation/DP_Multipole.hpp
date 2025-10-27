@@ -604,14 +604,15 @@ double RME_single_e_v(const DiracSpinor &Fa, const DiracSpinor &Fb, const auto r
   // Radial component int (fa*fb + ga*gb) dr
   double V = radial_int(Fb.f(), Fa.g(), ones, grid);
   double W = radial_int(Fb.g(), Fa.f(), ones, grid);
+  std::complex<double> i(0.0,1.0);
 
   // Angular component <b|| sigma || a> = 2*<b||s||a>
-  double C = 2*Angular::S_kk(-Fb.kappa(), Fa.kappa());
+  //double C = 2*Angular::S_kk(Fb.kappa(), Fa.kappa());
   // Sum over q = -L, ..., L, where L = 1, so q = -1, 0, 1
   // But, for the Wigner 3j symbol to be non-zero, m1 + m2 + m3 = 0, so the only
   // non-zero term in the sum is for when q = 0.
 
-  double matrix_elements = (0.5)*(V*(Fb.kappa()-Fa.kappa()-1) - W*(Fb.kappa()-Fa.kappa()+1)*C);
+  std::complex<double> matrix_elements = -i*(0.5)*((Fb.kappa()-Fa.kappa())*P_plus(Fa,Fb,ones,grid) - P_minus(Fa,Fb,ones,grid))*Angular::Ck_kk(1,Fb.kappa(),Fa.kappa());
 
   double omega = (Fb.en() - Fa.en());
 
